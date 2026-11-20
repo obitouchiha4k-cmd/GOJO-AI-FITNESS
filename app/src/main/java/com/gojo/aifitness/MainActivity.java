@@ -8,21 +8,19 @@ import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.view.Gravity;
-import android.view.View;
 import android.widget.*;
 import android.content.SharedPreferences;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.Locale;
 
 public class MainActivity extends Activity {
 
-    int purple = Color.rgb(168, 85, 247);
-    int white = Color.WHITE;
-    int dark = Color.rgb(9, 6, 17);
-    int cardColor = Color.rgb(28, 19, 42);
+    final int PURPLE = Color.rgb(170, 80, 255);
+    final int WHITE = Color.WHITE;
+    final int DARK = Color.rgb(7, 5, 15);
+    final int CARD = Color.rgb(25, 17, 40);
+    final int MUTED = Color.rgb(180, 165, 200);
 
-    LinearLayout page;
+    LinearLayout root, page;
     SharedPreferences prefs;
     Handler handler = new Handler();
 
@@ -34,39 +32,35 @@ public class MainActivity extends Activity {
     EditText[] setsInputs = new EditText[3];
     EditText[] repsInputs = new EditText[3];
 
-    String[] exercises = {"Push-ups", "Squats", "Plank"};
-
     EditText foodInput, caloriesInput;
     EditText proteinInput, carbsInput, fatsInput;
     TextView nutritionSummary, waterText;
 
-    String today() {
-        return new SimpleDateFormat(
-            "yyyyMMdd", Locale.US).format(new Date());
-    }
-
-    String dailyKey(String name) {
-        return name + "_" + today();
-    }
-
-    int getDaily(String name) {
-        return prefs.getInt(dailyKey(name), 0);
-    }
-
-    void addDaily(String name, int amount) {
-        prefs.edit().putInt(
-            dailyKey(name), getDaily(name) + amount).apply();
-    }
+    String[] exercises = {"Push-ups", "Squats", "Plank"};
 
     int dp(int n) {
         return (int)(n * getResources()
             .getDisplayMetrics().density);
     }
 
-    GradientDrawable bg(int color, int radius) {
+    GradientDrawable shape(int color, int radius) {
         GradientDrawable d = new GradientDrawable();
         d.setColor(color);
         d.setCornerRadius(dp(radius));
+        d.setStroke(dp(1), Color.rgb(105, 48, 155));
+        return d;
+    }
+
+    GradientDrawable gradient(int radius) {
+        GradientDrawable d = new GradientDrawable(
+            GradientDrawable.Orientation.TL_BR,
+            new int[] {
+                Color.rgb(68, 25, 110),
+                Color.rgb(25, 12, 42),
+                Color.rgb(12, 8, 22)
+            });
+        d.setCornerRadius(dp(radius));
+        d.setStroke(dp(1), PURPLE);
         return d;
     }
 
@@ -78,143 +72,239 @@ public class MainActivity extends Activity {
         return t;
     }
 
+    TextView bold(String value, int size, int color) {
+        TextView t = text(value, size, color);
+        t.setTypeface(null, Typeface.BOLD);
+        return t;
+    }
+
+    LinearLayout vertical() {
+        LinearLayout l = new LinearLayout(this);
+        l.setOrientation(LinearLayout.VERTICAL);
+        return l;
+    }
+
     LinearLayout card() {
-        LinearLayout c = new LinearLayout(this);
-        c.setOrientation(LinearLayout.VERTICAL);
-        c.setPadding(dp(16), dp(14), dp(16), dp(14));
-        c.setBackground(bg(cardColor, 18));
+        LinearLayout c = vertical();
+        c.setPadding(dp(17), dp(16), dp(17), dp(16));
+        c.setBackground(shape(CARD, 19));
         return c;
     }
 
-    Button makeButton(String name) {
+    Button button(String label) {
         Button b = new Button(this);
-        b.setText(name);
-        b.setTextColor(white);
+        b.setText(label);
+        b.setTextColor(WHITE);
+        b.setTextSize(13);
         b.setAllCaps(false);
-        b.setBackground(bg(Color.rgb(105, 45, 170), 14));
+        b.setTypeface(null, Typeface.BOLD);
+        b.setBackground(gradient(14));
         return b;
     }
 
     EditText input(String hint, boolean number) {
         EditText e = new EditText(this);
         e.setHint(hint);
-        e.setTextColor(white);
-        e.setHintTextColor(Color.LTGRAY);
-        e.setTextSize(15);
+        e.setTextColor(WHITE);
+        e.setHintTextColor(MUTED);
+        e.setTextSize(14);
+        e.setSingleLine(true);
         e.setPadding(dp(12), 0, dp(12), 0);
-        e.setBackground(bg(Color.rgb(48, 35, 62), 10));
+        e.setBackground(shape(
+            Color.rgb(39, 27, 55), 12));
         if (number) e.setInputType(2);
+        LinearLayout.LayoutParams lp =
+            new LinearLayout.LayoutParams(-1, dp(50));
+        lp.setMargins(0, dp(6), 0, dp(6));
+        e.setLayoutParams(lp);
         return e;
     }
 
-    EditText numberInput(String value) {
-        EditText e = input(value, true);
-        e.setText(value);
-        return e;
+    String dailyKey(String name) {
+        return name + "_" +
+            new java.text.SimpleDateFormat(
+                "yyyyMMdd", Locale.US).format(new java.util.Date());
     }
 
-    void setupPage(String title) {
+    int getDaily(String name) {
+        return prefs.getInt(dailyKey(name), 0);
+    }
+
+    void addDaily(String name, int amount) {
+        prefs.edit().putInt(
+            dailyKey(name), getDaily(name) + amount).apply();
+    }
+
+    void setupPage(String title, String subtitle) {
+        root = vertical();
+        root.setBackgroundColor(DARK);
+
+        LinearLayout header = vertical();
+        header.setPadding(dp(20), dp(18), dp(20), dp(12));
+
+        TextView brand = bold("GOJO  /  AI FITNESS", 13, PURPLE);
+        header.addView(brand);
+
+        TextView heading = bold(title, 25, WHITE);
+        heading.setPadding(0, dp(8), 0, dp(3));
+        header.addView(heading);
+
+        TextView sub = text(subtitle, 12, MUTED);
+        header.addView(sub);
+
+        root.addView(header);
+
         ScrollView scroll = new ScrollView(this);
-        scroll.setBackgroundColor(dark);
+        scroll.setFillViewport(false);
 
-        page = new LinearLayout(this);
-        page.setOrientation(LinearLayout.VERTICAL);
-        page.setPadding(dp(18), dp(24), dp(18), dp(25));
-
-        TextView heading = text(title, 25, purple);
-        heading.setTypeface(null, Typeface.BOLD);
-        heading.setGravity(Gravity.CENTER);
-        heading.setPadding(0, 0, 0, dp(20));
-        page.addView(heading);
+        page = vertical();
+        page.setPadding(dp(18), dp(8), dp(18), dp(20));
 
         scroll.addView(page);
-        setContentView(scroll);
+
+        root.addView(scroll, new LinearLayout.LayoutParams(
+            -1, 0, 1));
+
+        LinearLayout nav = new LinearLayout(this);
+        nav.setGravity(Gravity.CENTER);
+        nav.setPadding(dp(7), dp(8), dp(7), dp(8));
+        nav.setBackgroundColor(Color.rgb(17, 11, 27));
+
+        addNav(nav, "⌂\nHOME", () -> showHome());
+        addNav(nav, "⚔\nWORKOUT", () -> showWorkout());
+        addNav(nav, "◈\nDIET", () -> showDiet());
+
+        root.addView(nav, new LinearLayout.LayoutParams(
+            -1, dp(66)));
+
+        setContentView(root);
     }
 
-    void addHomeButton(String name, String subtitle,
-                       Runnable action) {
-        LinearLayout c = card();
+    void addNav(LinearLayout nav, String label, Runnable action) {
+        Button b = new Button(this);
+        b.setText(label);
+        b.setTextSize(10);
+        b.setTextColor(WHITE);
+        b.setAllCaps(false);
+        b.setBackgroundColor(Color.TRANSPARENT);
+        b.setOnClickListener(v -> action.run());
 
-        TextView title = text(name, 18, purple);
-        title.setTypeface(null, Typeface.BOLD);
-        c.addView(title);
+        nav.addView(b, new LinearLayout.LayoutParams(
+            0, -1, 1));
+    }
 
-        TextView sub = text(subtitle, 13, white);
-        sub.setPadding(0, dp(7), 0, 0);
-        c.addView(sub);
-
-        c.setOnClickListener(v -> action.run());
-
+    void addCard(LinearLayout c) {
         LinearLayout.LayoutParams lp =
             new LinearLayout.LayoutParams(-1, -2);
         lp.setMargins(0, dp(7), 0, dp(7));
         page.addView(c, lp);
     }
 
-    void backButton() {
-        Button home = makeButton("← Back to Home");
-        home.setOnClickListener(v -> showHome());
-        page.addView(home);
+    void sectionTitle(String value) {
+        TextView t = bold(value, 17, WHITE);
+        t.setPadding(0, dp(19), 0, dp(8));
+        page.addView(t);
     }
 
     void showHome() {
-        setupPage("GOJO AI FITNESS");
+        setupPage("THE LIMITLESS ERA",
+            "YOUR JOURNEY. YOUR POWER. YOUR RULES.");
 
-        TextView welcome = text(
-            "WELCOME BACK, WARRIOR", 14, white);
-        welcome.setGravity(Gravity.CENTER);
-        welcome.setPadding(0, 0, 0, dp(20));
-        page.addView(welcome);
+        LinearLayout hero = vertical();
+        hero.setPadding(dp(20), dp(23), dp(20), dp(23));
+        hero.setBackground(gradient(23));
 
-        LinearLayout stats = card();
+        TextView tag = bold("SPECIAL GRADE FITNESS", 11, PURPLE);
+        hero.addView(tag);
 
-        TextView heading = text(
-            "YOUR FITNESS STATS", 17, purple);
-        heading.setTypeface(null, Typeface.BOLD);
-        stats.addView(heading);
+        TextView name = bold("UNLEASH YOUR\nLIMITLESS POTENTIAL", 27, WHITE);
+        name.setPadding(0, dp(12), 0, dp(10));
+        hero.addView(name);
 
-        stats.addView(text(
-            "Completed Workouts: " +
-            prefs.getInt("workouts", 0), 16, white));
+        hero.addView(text(
+            "Train harder. Track smarter. Become stronger.",
+            13, MUTED));
 
-        TextView calories = text(
-            "Today's Calories: " + getDaily("calories") +
-            " kcal", 16, white);
-        calories.setPadding(0, dp(10), 0, 0);
-        stats.addView(calories);
+        TextView power = bold("∞  GOJO MODE", 15, WHITE);
+        power.setPadding(0, dp(18), 0, 0);
+        hero.addView(power);
 
-        page.addView(stats);
+        addCard(hero);
 
-        TextView zone = text("YOUR FITNESS ZONE", 20, white);
-        zone.setTypeface(null, Typeface.BOLD);
-        zone.setPadding(0, dp(24), 0, dp(10));
-        page.addView(zone);
+        sectionTitle("TODAY'S OVERVIEW");
 
-        addHomeButton("💪 WORKOUT TRACKER",
-            "Exercises, sets, reps and rest timer",
+        LinearLayout stats = new LinearLayout(this);
+        stats.setOrientation(LinearLayout.HORIZONTAL);
+
+        addStat(stats, "CALORIES",
+            getDaily("calories") + " kcal");
+        addStat(stats, "WORKOUTS",
+            "" + prefs.getInt("workouts", 0));
+
+        addCard(stats);
+
+        LinearLayout water = card();
+        water.addView(bold("WATER INTAKE", 15, PURPLE));
+        water.addView(text(
+            getDaily("water") + " ml consumed today",
+            14, WHITE));
+        addCard(water);
+
+        sectionTitle("YOUR TRAINING ZONE");
+
+        addHomeTile("⚔  WORKOUT TRACKER",
+            "Sets, reps and rest timer",
             () -> showWorkout());
 
-        addHomeButton("🥗 DIET & CALORIES",
-            "Meals, calories, protein, carbs and fats",
+        addHomeTile("◈  DIET & CALORIES",
+            "Meals and daily nutrition",
             () -> showDiet());
 
-        addHomeButton("📸 AI MEAL SCANNER",
-            "Food scanning and nutrition estimates",
+        addHomeTile("◎  AI MEAL SCANNER",
+            "Camera food scanning",
             () -> comingSoon("AI Meal Scanner"));
 
-        addHomeButton("📊 PROGRESS",
-            "Weight and fitness progress",
+        addHomeTile("✦  PROGRESS",
+            "Fitness charts and weight tracking",
             () -> comingSoon("Progress"));
 
-        addHomeButton("👤 PROFILE & SETTINGS",
+        addHomeTile("☯  PROFILE",
             "Personal fitness settings",
-            () -> comingSoon("Profile & Settings"));
+            () -> comingSoon("Profile"));
 
-        TextView footer = text(
-            "TRAIN SMART. LIVE STRONG. 🔥", 14, purple);
+        TextView footer = bold(
+            "TRAIN SMART  •  LIVE STRONG",
+            12, PURPLE);
         footer.setGravity(Gravity.CENTER);
-        footer.setPadding(0, dp(25), 0, dp(10));
+        footer.setPadding(0, dp(24), 0, dp(15));
         page.addView(footer);
+    }
+
+    void addStat(LinearLayout parent,
+                 String title, String value) {
+        LinearLayout c = card();
+        c.addView(bold(title, 11, MUTED));
+        TextView v = bold(value, 19, WHITE);
+        v.setPadding(0, dp(9), 0, 0);
+        c.addView(v);
+
+        LinearLayout.LayoutParams lp =
+            new LinearLayout.LayoutParams(0, -2, 1);
+        lp.setMargins(dp(4), 0, dp(4), 0);
+        parent.addView(c, lp);
+    }
+
+    void addHomeTile(String title, String sub, Runnable action) {
+        LinearLayout c = card();
+        c.setBackground(gradient(17));
+
+        c.addView(bold(title, 16, WHITE));
+        TextView s = text(sub, 12, MUTED);
+        s.setPadding(0, dp(6), 0, 0);
+        c.addView(s);
+
+        c.setOnClickListener(v -> action.run());
+        addCard(c);
     }
 
     void comingSoon(String name) {
@@ -224,135 +314,115 @@ public class MainActivity extends Activity {
     }
 
     void showWorkout() {
-        setupPage("💪 WORKOUT TRACKER");
-        backButton();
+        setupPage("WORKOUT ARENA",
+            "BUILD YOUR STRENGTH • ONE REP AT A TIME");
 
-        TextView intro = text(
-            "Enter your sets and reps for each exercise.",
-            14, white);
-        intro.setPadding(0, dp(18), 0, dp(15));
-        page.addView(intro);
+        LinearLayout intro = card();
+        intro.setBackground(gradient(18));
+        intro.addView(bold("TODAY'S TRAINING", 18, WHITE));
+        intro.addView(text(
+            "Complete your exercises and save your session.",
+            12, MUTED));
+        addCard(intro);
 
         for (int i = 0; i < exercises.length; i++) {
             LinearLayout c = card();
 
-            TextView name = text(exercises[i], 19, purple);
-            name.setTypeface(null, Typeface.BOLD);
-            c.addView(name);
+            c.addView(bold(
+                "⚡  " + exercises[i], 18, PURPLE));
 
             LinearLayout row = new LinearLayout(this);
             row.setGravity(Gravity.CENTER_VERTICAL);
 
-            TextView setsLabel = text("Sets", 14, white);
-            row.addView(setsLabel);
+            TextView a = text("SETS", 11, MUTED);
+            row.addView(a);
 
-            EditText sets = numberInput("3");
-            LinearLayout.LayoutParams p1 =
-                new LinearLayout.LayoutParams(0, dp(48), 1);
-            p1.setMargins(dp(8), 0, dp(12), 0);
-            row.addView(sets, p1);
+            EditText sets = input("3", true);
+            sets.setText("3");
+            sets.setLayoutParams(new LinearLayout.LayoutParams(
+                0, dp(48), 1));
             setsInputs[i] = sets;
+            row.addView(sets);
 
-            TextView repsLabel = text("Reps", 14, white);
-            row.addView(repsLabel);
+            TextView b = text("REPS", 11, MUTED);
+            b.setPadding(dp(8), 0, 0, 0);
+            row.addView(b);
 
-            EditText reps = numberInput("10");
-            LinearLayout.LayoutParams p2 =
-                new LinearLayout.LayoutParams(0, dp(48), 1);
-            p2.setMargins(dp(8), 0, 0, 0);
-            row.addView(reps, p2);
+            EditText reps = input("10", true);
+            reps.setText("10");
+            reps.setLayoutParams(new LinearLayout.LayoutParams(
+                0, dp(48), 1));
             repsInputs[i] = reps;
+            row.addView(reps);
 
             c.addView(row);
-
-            LinearLayout.LayoutParams lp =
-                new LinearLayout.LayoutParams(-1, -2);
-            lp.setMargins(0, dp(7), 0, dp(7));
-            page.addView(c, lp);
+            addCard(c);
         }
 
-        Button save = makeButton("SAVE WORKOUT");
+        Button save = button("SAVE WORKOUT  ✓");
         save.setOnClickListener(v -> saveWorkout());
         page.addView(save);
 
-        LinearLayout timerCard = card();
+        sectionTitle("REST TIMER");
 
-        TextView timerTitle = text("⏱ REST TIMER", 20, purple);
-        timerTitle.setTypeface(null, Typeface.BOLD);
-        timerCard.addView(timerTitle);
+        LinearLayout timer = card();
+        timer.setBackground(gradient(20));
 
-        timerText = text("01:00", 35, white);
+        timerText = bold("01:00", 38, WHITE);
         timerText.setGravity(Gravity.CENTER);
-        timerText.setPadding(0, dp(18), 0, dp(18));
-        timerCard.addView(timerText);
+        timer.addView(timerText);
 
-        timerButton = makeButton("START 60 SECOND REST");
+        timerButton = button("START REST");
         timerButton.setOnClickListener(v -> startTimer());
-        timerCard.addView(timerButton);
+        timer.addView(timerButton);
 
-        Button reset = makeButton("RESET TIMER");
+        Button reset = button("RESET TIMER");
         reset.setOnClickListener(v -> resetTimer());
-        timerCard.addView(reset);
+        timer.addView(reset);
 
-        LinearLayout.LayoutParams timerLp =
-            new LinearLayout.LayoutParams(-1, -2);
-        timerLp.setMargins(0, dp(15), 0, dp(15));
-        page.addView(timerCard, timerLp);
+        addCard(timer);
 
-        page.addView(text(
-            "Total completed workouts: " +
-            prefs.getInt("workouts", 0), 16, white));
+        TextView total = text(
+            "Completed workouts: " +
+            prefs.getInt("workouts", 0), 14, WHITE);
+        total.setPadding(0, dp(15), 0, 0);
+        page.addView(total);
     }
 
     void saveWorkout() {
         StringBuilder summary = new StringBuilder();
 
         for (int i = 0; i < exercises.length; i++) {
-            String sets = setsInputs[i].getText().toString().trim();
-            String reps = repsInputs[i].getText().toString().trim();
-
-            if (sets.isEmpty() || reps.isEmpty()) {
-                Toast.makeText(this,
-                    "Enter sets and reps for all exercises",
-                    Toast.LENGTH_SHORT).show();
-                return;
-            }
+            String s = setsInputs[i].getText().toString().trim();
+            String r = repsInputs[i].getText().toString().trim();
 
             try {
-                int s = Integer.parseInt(sets);
-                int r = Integer.parseInt(reps);
+                int a = Integer.parseInt(s);
+                int b = Integer.parseInt(r);
 
-                if (s < 1 || s > 100 || r < 1 || r > 1000) {
-                    Toast.makeText(this,
-                        "Enter valid sets and reps",
-                        Toast.LENGTH_SHORT).show();
-                    return;
-                }
+                if (a < 1 || a > 100 || b < 1 || b > 1000)
+                    throw new Exception();
 
                 summary.append(exercises[i])
-                    .append(": ").append(s)
-                    .append(" sets x ").append(r)
-                    .append(" reps\n");
+                    .append(": ").append(a)
+                    .append(" x ").append(b).append("\n");
 
-            } catch (NumberFormatException ex) {
+            } catch (Exception e) {
                 Toast.makeText(this,
-                    "Numbers only please",
+                    "Please enter valid sets and reps",
                     Toast.LENGTH_SHORT).show();
                 return;
             }
         }
 
-        int total = prefs.getInt("workouts", 0) + 1;
-
         prefs.edit()
-            .putInt("workouts", total)
+            .putInt("workouts",
+                prefs.getInt("workouts", 0) + 1)
             .putString("last_workout", summary.toString())
             .apply();
 
         Toast.makeText(this,
-            "Workout saved successfully! 💪",
-            Toast.LENGTH_LONG).show();
-
+            "Workout saved! 💜", Toast.LENGTH_SHORT).show();
         showWorkout();
     }
 
@@ -365,11 +435,11 @@ public class MainActivity extends Activity {
 
             if (seconds <= 0) {
                 seconds = 0;
-                timerText.setText("00:00");
                 timerRunning = false;
+                timerText.setText("00:00");
                 timerButton.setText("START AGAIN");
                 Toast.makeText(MainActivity.this,
-                    "Rest complete! Let's go! 🔥",
+                    "REST COMPLETE! LET'S GO!",
                     Toast.LENGTH_LONG).show();
                 return;
             }
@@ -380,9 +450,8 @@ public class MainActivity extends Activity {
     };
 
     void updateTimer() {
-        timerText.setText(String.format(
-            Locale.US, "%02d:%02d",
-            seconds / 60, seconds % 60));
+        timerText.setText(String.format(Locale.US,
+            "%02d:%02d", seconds / 60, seconds % 60));
     }
 
     void startTimer() {
@@ -390,7 +459,7 @@ public class MainActivity extends Activity {
         if (seconds <= 0) seconds = 60;
 
         timerRunning = true;
-        timerButton.setText("TIMER RUNNING...");
+        timerButton.setText("TIMER RUNNING");
         updateTimer();
         handler.postDelayed(timerTask, 1000);
     }
@@ -399,37 +468,30 @@ public class MainActivity extends Activity {
         handler.removeCallbacks(timerTask);
         timerRunning = false;
         seconds = 60;
-
         if (timerText != null) timerText.setText("01:00");
-        if (timerButton != null)
-            timerButton.setText("START 60 SECOND REST");
+        if (timerButton != null) timerButton.setText("START REST");
     }
 
     void showDiet() {
-        setupPage("🥗 DIET & CALORIES");
-        backButton();
-
-        TextView subtitle = text(
-            "YOUR DAILY NUTRITION", 18, purple);
-        subtitle.setTypeface(null, Typeface.BOLD);
-        subtitle.setPadding(0, dp(20), 0, dp(12));
-        page.addView(subtitle);
+        setupPage("NUTRITION CENTER",
+            "FUEL YOUR BODY • POWER YOUR TRAINING");
 
         LinearLayout totals = card();
-        nutritionSummary = text("", 16, white);
+        totals.setBackground(gradient(20));
+        totals.addView(bold("DAILY NUTRITION", 18, WHITE));
+
+        nutritionSummary = text("", 15, WHITE);
+        nutritionSummary.setPadding(0, dp(12), 0, 0);
         totals.addView(nutritionSummary);
-        page.addView(totals);
+
+        addCard(totals);
         updateNutrition();
 
-        TextView addTitle = text(
-            "ADD YOUR MEAL", 19, purple);
-        addTitle.setTypeface(null, Typeface.BOLD);
-        addTitle.setPadding(0, dp(22), 0, dp(12));
-        page.addView(addTitle);
+        sectionTitle("ADD YOUR MEAL");
 
         LinearLayout form = card();
 
-        foodInput = input("Food name (e.g. Rice)", false);
+        foodInput = input("Food name", false);
         form.addView(foodInput);
 
         caloriesInput = input("Calories (kcal)", true);
@@ -444,45 +506,40 @@ public class MainActivity extends Activity {
         fatsInput = input("Fats (grams)", true);
         form.addView(fatsInput);
 
-        Button saveMeal = makeButton("SAVE MEAL");
-        saveMeal.setOnClickListener(v -> saveMeal());
-        form.addView(saveMeal);
+        Button save = button("SAVE MEAL  ✓");
+        save.setOnClickListener(v -> saveMeal());
+        form.addView(save);
 
-        page.addView(form);
+        addCard(form);
 
-        TextView waterTitle = text(
-            "💧 WATER TRACKER", 19, purple);
-        waterTitle.setTypeface(null, Typeface.BOLD);
-        waterTitle.setPadding(0, dp(22), 0, dp(12));
-        page.addView(waterTitle);
+        sectionTitle("WATER TRACKER");
 
-        LinearLayout waterCard = card();
-
-        waterText = text("", 18, white);
-        waterCard.addView(waterText);
+        LinearLayout water = card();
+        waterText = text("", 16, WHITE);
+        water.addView(waterText);
         updateWater();
 
-        Button addWater = makeButton("+ ADD 250 ML WATER");
-        addWater.setOnClickListener(v -> {
+        Button add = button("+ ADD 250 ML");
+        add.setOnClickListener(v -> {
             addDaily("water", 250);
             updateWater();
         });
-        waterCard.addView(addWater);
+        water.addView(add);
 
-        Button resetWater = makeButton("RESET WATER");
-        resetWater.setOnClickListener(v -> {
+        Button reset = button("RESET WATER");
+        reset.setOnClickListener(v -> {
             prefs.edit().putInt(dailyKey("water"), 0).apply();
             updateWater();
         });
-        waterCard.addView(resetWater);
+        water.addView(reset);
 
-        page.addView(waterCard);
+        addCard(water);
 
         TextView note = text(
-            "Nutrition values are estimates. Enter the values " +
-            "from your food label or a trusted nutrition source.",
-            12, Color.LTGRAY);
-        note.setPadding(0, dp(18), 0, dp(10));
+            "Nutrition values are estimates. Use food labels " +
+            "or trusted nutrition sources for accurate entries.",
+            11, MUTED);
+        note.setPadding(0, dp(15), 0, dp(10));
         page.addView(note);
     }
 
@@ -490,68 +547,63 @@ public class MainActivity extends Activity {
         if (nutritionSummary == null) return;
 
         nutritionSummary.setText(
-            "Calories: " + getDaily("calories") + " kcal\n\n" +
-            "Protein: " + getDaily("protein") + " g\n\n" +
-            "Carbs: " + getDaily("carbs") + " g\n\n" +
-            "Fats: " + getDaily("fats") + " g"
-        );
+            "🔥 Calories     " + getDaily("calories") + " kcal\n\n" +
+            "💪 Protein       " + getDaily("protein") + " g\n\n" +
+            "🍚 Carbs         " + getDaily("carbs") + " g\n\n" +
+            "🥑 Fats           " + getDaily("fats") + " g");
     }
 
     void updateWater() {
         if (waterText != null) {
             waterText.setText(
-                "Today's water: " + getDaily("water") + " ml");
+                "💧 Today's water: " +
+                getDaily("water") + " ml");
         }
     }
 
     void saveMeal() {
         String food = foodInput.getText().toString().trim();
 
-        String cal = caloriesInput.getText().toString().trim();
-        String pro = proteinInput.getText().toString().trim();
-        String carb = carbsInput.getText().toString().trim();
-        String fat = fatsInput.getText().toString().trim();
+        String[] values = {
+            caloriesInput.getText().toString().trim(),
+            proteinInput.getText().toString().trim(),
+            carbsInput.getText().toString().trim(),
+            fatsInput.getText().toString().trim()
+        };
 
-        if (food.isEmpty() || cal.isEmpty() ||
-            pro.isEmpty() || carb.isEmpty() || fat.isEmpty()) {
+        if (food.isEmpty()) {
             Toast.makeText(this,
-                "Please fill in all meal details",
-                Toast.LENGTH_SHORT).show();
+                "Enter the food name", Toast.LENGTH_SHORT).show();
             return;
         }
 
         try {
-            int c = Integer.parseInt(cal);
-            int p = Integer.parseInt(pro);
-            int cb = Integer.parseInt(carb);
-            int f = Integer.parseInt(fat);
+            int[] nums = new int[4];
 
-            if (c < 0 || p < 0 || cb < 0 || f < 0 ||
-                c > 10000 || p > 1000 || cb > 1000 || f > 1000) {
-                Toast.makeText(this,
-                    "Please enter valid nutrition values",
-                    Toast.LENGTH_SHORT).show();
-                return;
+            for (int i = 0; i < 4; i++) {
+                nums[i] = Integer.parseInt(values[i]);
+                if (nums[i] < 0 || nums[i] > 10000)
+                    throw new Exception();
             }
 
-            addDaily("calories", c);
-            addDaily("protein", p);
-            addDaily("carbs", cb);
-            addDaily("fats", f);
+            addDaily("calories", nums[0]);
+            addDaily("protein", nums[1]);
+            addDaily("carbs", nums[2]);
+            addDaily("fats", nums[3]);
 
             prefs.edit().putString(
-                "last_meal",
-                food + ": " + c + " kcal").apply();
+                "last_meal", food + " - " +
+                nums[0] + " kcal").apply();
 
             Toast.makeText(this,
-                "Meal saved successfully! 🥗",
-                Toast.LENGTH_LONG).show();
+                "Meal saved successfully!",
+                Toast.LENGTH_SHORT).show();
 
             showDiet();
 
-        } catch (NumberFormatException ex) {
+        } catch (Exception e) {
             Toast.makeText(this,
-                "Please enter numbers only",
+                "Enter valid nutrition numbers",
                 Toast.LENGTH_SHORT).show();
         }
     }
@@ -560,8 +612,8 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        getWindow().setStatusBarColor(dark);
-        getWindow().setNavigationBarColor(dark);
+        getWindow().setStatusBarColor(DARK);
+        getWindow().setNavigationBarColor(DARK);
 
         prefs = getSharedPreferences(
             "GojoFitnessData", MODE_PRIVATE);
@@ -574,7 +626,4 @@ public class MainActivity extends Activity {
         handler.removeCallbacks(timerTask);
         super.onDestroy();
     }
-            }
-                            
-
-                                        
+}
