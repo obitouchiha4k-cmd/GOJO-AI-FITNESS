@@ -9,13 +9,11 @@ import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.view.Gravity;
 import android.view.View;
-import android.widget.Button;
-import android.widget.EditText;
-import android.widget.LinearLayout;
-import android.widget.ScrollView;
-import android.widget.TextView;
+import android.widget.*;
 import android.content.SharedPreferences;
-import android.widget.Toast;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 
 public class MainActivity extends Activity {
 
@@ -27,6 +25,7 @@ public class MainActivity extends Activity {
     LinearLayout page;
     SharedPreferences prefs;
     Handler handler = new Handler();
+
     TextView timerText;
     Button timerButton;
     int seconds = 60;
@@ -35,11 +34,29 @@ public class MainActivity extends Activity {
     EditText[] setsInputs = new EditText[3];
     EditText[] repsInputs = new EditText[3];
 
-    String[] exercises = {
-        "Push-ups",
-        "Squats",
-        "Plank"
-    };
+    String[] exercises = {"Push-ups", "Squats", "Plank"};
+
+    EditText foodInput, caloriesInput;
+    EditText proteinInput, carbsInput, fatsInput;
+    TextView nutritionSummary, waterText;
+
+    String today() {
+        return new SimpleDateFormat(
+            "yyyyMMdd", Locale.US).format(new Date());
+    }
+
+    String dailyKey(String name) {
+        return name + "_" + today();
+    }
+
+    int getDaily(String name) {
+        return prefs.getInt(dailyKey(name), 0);
+    }
+
+    void addDaily(String name, int amount) {
+        prefs.edit().putInt(
+            dailyKey(name), getDaily(name) + amount).apply();
+    }
 
     int dp(int n) {
         return (int)(n * getResources()
@@ -78,16 +95,21 @@ public class MainActivity extends Activity {
         return b;
     }
 
-    EditText numberInput(String value) {
+    EditText input(String hint, boolean number) {
         EditText e = new EditText(this);
-        e.setText(value);
+        e.setHint(hint);
         e.setTextColor(white);
         e.setHintTextColor(Color.LTGRAY);
-        e.setHint("0");
-        e.setInputType(2);
-        e.setTextSize(16);
-        e.setPadding(dp(10), 0, dp(10), 0);
+        e.setTextSize(15);
+        e.setPadding(dp(12), 0, dp(12), 0);
         e.setBackground(bg(Color.rgb(48, 35, 62), 10));
+        if (number) e.setInputType(2);
+        return e;
+    }
+
+    EditText numberInput(String value) {
+        EditText e = input(value, true);
+        e.setText(value);
         return e;
     }
 
@@ -129,6 +151,12 @@ public class MainActivity extends Activity {
         page.addView(c, lp);
     }
 
+    void backButton() {
+        Button home = makeButton("← Back to Home");
+        home.setOnClickListener(v -> showHome());
+        page.addView(home);
+    }
+
     void showHome() {
         setupPage("GOJO AI FITNESS");
 
@@ -145,11 +173,15 @@ public class MainActivity extends Activity {
         heading.setTypeface(null, Typeface.BOLD);
         stats.addView(heading);
 
-        TextView count = text(
+        stats.addView(text(
             "Completed Workouts: " +
-            prefs.getInt("workouts", 0), 16, white);
-        count.setPadding(0, dp(14), 0, dp(5));
-        stats.addView(count);
+            prefs.getInt("workouts", 0), 16, white));
+
+        TextView calories = text(
+            "Today's Calories: " + getDaily("calories") +
+            " kcal", 16, white);
+        calories.setPadding(0, dp(10), 0, 0);
+        stats.addView(calories);
 
         page.addView(stats);
 
@@ -163,8 +195,8 @@ public class MainActivity extends Activity {
             () -> showWorkout());
 
         addHomeButton("🥗 DIET & CALORIES",
-            "Meal and nutrition tracking",
-            () -> comingSoon("Diet & Calories"));
+            "Meals, calories, protein, carbs and fats",
+            () -> showDiet());
 
         addHomeButton("📸 AI MEAL SCANNER",
             "Food scanning and nutrition estimates",
@@ -193,10 +225,7 @@ public class MainActivity extends Activity {
 
     void showWorkout() {
         setupPage("💪 WORKOUT TRACKER");
-
-        Button home = makeButton("← Back to Home");
-        home.setOnClickListener(v -> showHome());
-        page.addView(home);
+        backButton();
 
         TextView intro = text(
             "Enter your sets and reps for each exercise.",
@@ -205,17 +234,13 @@ public class MainActivity extends Activity {
         page.addView(intro);
 
         for (int i = 0; i < exercises.length; i++) {
-            final int index = i;
-
             LinearLayout c = card();
 
-            TextView name = text(
-                exercises[i], 19, purple);
+            TextView name = text(exercises[i], 19, purple);
             name.setTypeface(null, Typeface.BOLD);
             c.addView(name);
 
             LinearLayout row = new LinearLayout(this);
-            row.setOrientation(LinearLayout.HORIZONTAL);
             row.setGravity(Gravity.CENTER_VERTICAL);
 
             TextView setsLabel = text("Sets", 14, white);
@@ -248,15 +273,11 @@ public class MainActivity extends Activity {
 
         Button save = makeButton("SAVE WORKOUT");
         save.setOnClickListener(v -> saveWorkout());
-        LinearLayout.LayoutParams saveLp =
-            new LinearLayout.LayoutParams(-1, -2);
-        saveLp.setMargins(0, dp(15), 0, dp(20));
-        page.addView(save, saveLp);
+        page.addView(save);
 
         LinearLayout timerCard = card();
 
-        TextView timerTitle = text(
-            "⏱ REST TIMER", 20, purple);
+        TextView timerTitle = text("⏱ REST TIMER", 20, purple);
         timerTitle.setTypeface(null, Typeface.BOLD);
         timerCard.addView(timerTitle);
 
@@ -271,21 +292,16 @@ public class MainActivity extends Activity {
 
         Button reset = makeButton("RESET TIMER");
         reset.setOnClickListener(v -> resetTimer());
-        LinearLayout.LayoutParams resetLp =
-            new LinearLayout.LayoutParams(-1, -2);
-        resetLp.setMargins(0, dp(8), 0, 0);
-        timerCard.addView(reset, resetLp);
+        timerCard.addView(reset);
 
         LinearLayout.LayoutParams timerLp =
             new LinearLayout.LayoutParams(-1, -2);
-        timerLp.setMargins(0, dp(8), 0, dp(15));
+        timerLp.setMargins(0, dp(15), 0, dp(15));
         page.addView(timerCard, timerLp);
 
-        TextView history = text(
+        page.addView(text(
             "Total completed workouts: " +
-            prefs.getInt("workouts", 0), 16, white);
-        history.setPadding(0, dp(15), 0, dp(15));
-        page.addView(history);
+            prefs.getInt("workouts", 0), 16, white));
     }
 
     void saveWorkout() {
@@ -297,8 +313,8 @@ public class MainActivity extends Activity {
 
             if (sets.isEmpty() || reps.isEmpty()) {
                 Toast.makeText(this,
-                    "Please enter sets and reps for all exercises",
-                    Toast.LENGTH_LONG).show();
+                    "Enter sets and reps for all exercises",
+                    Toast.LENGTH_SHORT).show();
                 return;
             }
 
@@ -314,15 +330,13 @@ public class MainActivity extends Activity {
                 }
 
                 summary.append(exercises[i])
-                    .append(": ")
-                    .append(s)
-                    .append(" sets x ")
-                    .append(r)
+                    .append(": ").append(s)
+                    .append(" sets x ").append(r)
                     .append(" reps\n");
 
             } catch (NumberFormatException ex) {
                 Toast.makeText(this,
-                    "Please enter numbers only",
+                    "Numbers only please",
                     Toast.LENGTH_SHORT).show();
                 return;
             }
@@ -366,15 +380,13 @@ public class MainActivity extends Activity {
     };
 
     void updateTimer() {
-        int min = seconds / 60;
-        int sec = seconds % 60;
         timerText.setText(String.format(
-            java.util.Locale.US, "%02d:%02d", min, sec));
+            Locale.US, "%02d:%02d",
+            seconds / 60, seconds % 60));
     }
 
     void startTimer() {
         if (timerRunning) return;
-
         if (seconds <= 0) seconds = 60;
 
         timerRunning = true;
@@ -388,12 +400,159 @@ public class MainActivity extends Activity {
         timerRunning = false;
         seconds = 60;
 
-        if (timerText != null) {
-            timerText.setText("01:00");
+        if (timerText != null) timerText.setText("01:00");
+        if (timerButton != null)
+            timerButton.setText("START 60 SECOND REST");
+    }
+
+    void showDiet() {
+        setupPage("🥗 DIET & CALORIES");
+        backButton();
+
+        TextView subtitle = text(
+            "YOUR DAILY NUTRITION", 18, purple);
+        subtitle.setTypeface(null, Typeface.BOLD);
+        subtitle.setPadding(0, dp(20), 0, dp(12));
+        page.addView(subtitle);
+
+        LinearLayout totals = card();
+        nutritionSummary = text("", 16, white);
+        totals.addView(nutritionSummary);
+        page.addView(totals);
+        updateNutrition();
+
+        TextView addTitle = text(
+            "ADD YOUR MEAL", 19, purple);
+        addTitle.setTypeface(null, Typeface.BOLD);
+        addTitle.setPadding(0, dp(22), 0, dp(12));
+        page.addView(addTitle);
+
+        LinearLayout form = card();
+
+        foodInput = input("Food name (e.g. Rice)", false);
+        form.addView(foodInput);
+
+        caloriesInput = input("Calories (kcal)", true);
+        form.addView(caloriesInput);
+
+        proteinInput = input("Protein (grams)", true);
+        form.addView(proteinInput);
+
+        carbsInput = input("Carbs (grams)", true);
+        form.addView(carbsInput);
+
+        fatsInput = input("Fats (grams)", true);
+        form.addView(fatsInput);
+
+        Button saveMeal = makeButton("SAVE MEAL");
+        saveMeal.setOnClickListener(v -> saveMeal());
+        form.addView(saveMeal);
+
+        page.addView(form);
+
+        TextView waterTitle = text(
+            "💧 WATER TRACKER", 19, purple);
+        waterTitle.setTypeface(null, Typeface.BOLD);
+        waterTitle.setPadding(0, dp(22), 0, dp(12));
+        page.addView(waterTitle);
+
+        LinearLayout waterCard = card();
+
+        waterText = text("", 18, white);
+        waterCard.addView(waterText);
+        updateWater();
+
+        Button addWater = makeButton("+ ADD 250 ML WATER");
+        addWater.setOnClickListener(v -> {
+            addDaily("water", 250);
+            updateWater();
+        });
+        waterCard.addView(addWater);
+
+        Button resetWater = makeButton("RESET WATER");
+        resetWater.setOnClickListener(v -> {
+            prefs.edit().putInt(dailyKey("water"), 0).apply();
+            updateWater();
+        });
+        waterCard.addView(resetWater);
+
+        page.addView(waterCard);
+
+        TextView note = text(
+            "Nutrition values are estimates. Enter the values " +
+            "from your food label or a trusted nutrition source.",
+            12, Color.LTGRAY);
+        note.setPadding(0, dp(18), 0, dp(10));
+        page.addView(note);
+    }
+
+    void updateNutrition() {
+        if (nutritionSummary == null) return;
+
+        nutritionSummary.setText(
+            "Calories: " + getDaily("calories") + " kcal\n\n" +
+            "Protein: " + getDaily("protein") + " g\n\n" +
+            "Carbs: " + getDaily("carbs") + " g\n\n" +
+            "Fats: " + getDaily("fats") + " g"
+        );
+    }
+
+    void updateWater() {
+        if (waterText != null) {
+            waterText.setText(
+                "Today's water: " + getDaily("water") + " ml");
+        }
+    }
+
+    void saveMeal() {
+        String food = foodInput.getText().toString().trim();
+
+        String cal = caloriesInput.getText().toString().trim();
+        String pro = proteinInput.getText().toString().trim();
+        String carb = carbsInput.getText().toString().trim();
+        String fat = fatsInput.getText().toString().trim();
+
+        if (food.isEmpty() || cal.isEmpty() ||
+            pro.isEmpty() || carb.isEmpty() || fat.isEmpty()) {
+            Toast.makeText(this,
+                "Please fill in all meal details",
+                Toast.LENGTH_SHORT).show();
+            return;
         }
 
-        if (timerButton != null) {
-            timerButton.setText("START 60 SECOND REST");
+        try {
+            int c = Integer.parseInt(cal);
+            int p = Integer.parseInt(pro);
+            int cb = Integer.parseInt(carb);
+            int f = Integer.parseInt(fat);
+
+            if (c < 0 || p < 0 || cb < 0 || f < 0 ||
+                c > 10000 || p > 1000 || cb > 1000 || f > 1000) {
+                Toast.makeText(this,
+                    "Please enter valid nutrition values",
+                    Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            addDaily("calories", c);
+            addDaily("protein", p);
+            addDaily("carbs", cb);
+            addDaily("fats", f);
+
+            prefs.edit().putString(
+                "last_meal",
+                food + ": " + c + " kcal").apply();
+
+            Toast.makeText(this,
+                "Meal saved successfully! 🥗",
+                Toast.LENGTH_LONG).show();
+
+            showDiet();
+
+        } catch (NumberFormatException ex) {
+            Toast.makeText(this,
+                "Please enter numbers only",
+                Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -416,5 +575,6 @@ public class MainActivity extends Activity {
         super.onDestroy();
     }
             }
-            
-        
+                            
+
+                                        
